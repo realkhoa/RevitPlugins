@@ -1,0 +1,14 @@
+<Solution>
+  <Project Path="AlignedDIM/AlignedDIM.csproj" Id="98ede1a5-f11b-4a43-98b2-41c755bef282" />
+  <Project Path="AlignedDIMParam/AlignedDIMParam.csproj" Id="4c64c34c-76d5-48c3-9edc-eee08c11c544" />
+  <Project Path="AlignedDIMPrecise/AlignedDIMPrecise.csproj" Id="74e9b7dc-a14b-44f7-90f6-4a0f4bb70b61" />
+  <Project Path="AngularDIM/AngularDIM.csproj" Id="0681de84-7686-449a-b1e0-8f7bd318d4ff" />
+  <Project Path="AngularDIMPrecise/AngularDIMPrecise.csproj" Id="488cebb8-93a9-4bde-9904-3e768cf5f97e" />
+  <Project Path="LinearDIM/LinearDIM.csproj" Id="afb8ac52-16e7-42b3-bef5-d0fdd06159f0" />
+  <Project Path="MultiAlignedDIM/MultiAlignedDIM.csproj" />
+  <Project Path="ObjectDIM/ObjectDIM.csproj" Id="274ea1f3-267c-4da3-af6b-3b58ee16f5f1" />
+  <Project Path="QuickAlignedDIM/QuickAlignedDIM.csproj" Id="e940278b-a7c0-4495-aede-56de5c860224" />
+  <Project Path="RadialDIM/RadialDIM.csproj" Id="14ba9916-753c-4e64-9230-99cd7b3cb7cc" />
+  <Project Path="SpotCoordinate/SpotCoordinate.csproj" Id="247a00e4-e0bc-4fcb-a7ea-4225fed709eb" />
+  <Project Path="SpotDIM/SpotDIM.csproj" Id="c956684e-2ecb-45a0-9aaa-f25e0571ebda" />
+</Solution>
