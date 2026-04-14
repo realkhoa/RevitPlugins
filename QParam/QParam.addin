@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <AddInId>5c86e5e5-0000-0000-0000-5c86e5e50001</AddInId>
+    <Assembly>C:\Users\khoan\source\repos\CreateDIM\QParam\bin\Debug\net8.0-windows\QParam.dll</Assembly>
+    <FullClassName>QParam.App</FullClassName>
+    <Name>QParam</Name>
+    <VendorId>CreateDIM</VendorId>
+    <VendorDescription>CreateDIM</VendorDescription>
+  </AddIn>
+  <AddIn Type="Command">
+    <AddInId>5c86e5e5-0000-0000-0000-5c86e5e50002</AddInId>
+    <Assembly>C:\Users\khoan\source\repos\CreateDIM\QParam\bin\Debug\net8.0-windows\QParam.dll</Assembly>
+    <FullClassName>QParam.Class1</FullClassName>
+    <Text>QParam</Text>
+    <VendorId>CreateDIM</VendorId>
+    <VendorDescription>CreateDIM</VendorDescription>
+  </AddIn>
+</RevitAddIns>

@@ -243,9 +243,9 @@ namespace AlignedDIMParam
                             foreach (FamilyParameter fp in doc.FamilyManager.Parameters)
                             {
                                 if (fp.Definition.GetDataType() == SpecTypeId.Length)
-                                {
-                                    existingLengthParams.Add(fp.Definition.Name);
-                                }
+                                        {
+                                            existingLengthParams.Add(fp.Definition.Name);
+                                        }
                             }
                             existingLengthParams.Sort(); // Sắp xếp A-Z cho dễ nhìn
 

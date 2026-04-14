@@ -8,6 +8,7 @@
   <Project Path="LinearDIM/LinearDIM.csproj" Id="afb8ac52-16e7-42b3-bef5-d0fdd06159f0" />
   <Project Path="MultiAlignedDIM/MultiAlignedDIM.csproj" />
   <Project Path="ObjectDIM/ObjectDIM.csproj" Id="274ea1f3-267c-4da3-af6b-3b58ee16f5f1" />
+  <Project Path="QParam/QParam.csproj" Id="f9285ba1-f10c-48ed-939b-f40dc9660c49" />
   <Project Path="QuickAlignedDIM/QuickAlignedDIM.csproj" Id="e940278b-a7c0-4495-aede-56de5c860224" />
   <Project Path="RadialDIM/RadialDIM.csproj" Id="14ba9916-753c-4e64-9230-99cd7b3cb7cc" />
   <Project Path="SpotCoordinate/SpotCoordinate.csproj" Id="247a00e4-e0bc-4fcb-a7ea-4225fed709eb" />
