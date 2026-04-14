@@ -3,6 +3,7 @@
   <Project Path="AlignedDIMParam/AlignedDIMParam.csproj" Id="4c64c34c-76d5-48c3-9edc-eee08c11c544" />
   <Project Path="AlignedDIMPrecise/AlignedDIMPrecise.csproj" Id="74e9b7dc-a14b-44f7-90f6-4a0f4bb70b61" />
   <Project Path="AngularDIM/AngularDIM.csproj" Id="0681de84-7686-449a-b1e0-8f7bd318d4ff" />
+  <Project Path="AngularDIMParam/AngularDIMParam.csproj" Id="769b980b-7ec6-4c07-9238-5d0651e6b0ae" />
   <Project Path="AngularDIMPrecise/AngularDIMPrecise.csproj" Id="488cebb8-93a9-4bde-9904-3e768cf5f97e" />
   <Project Path="LinearDIM/LinearDIM.csproj" Id="afb8ac52-16e7-42b3-bef5-d0fdd06159f0" />
   <Project Path="MultiAlignedDIM/MultiAlignedDIM.csproj" />
