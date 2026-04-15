@@ -4,107 +4,15 @@ using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 using TaskDialog = Autodesk.Revit.UI.TaskDialog;
 using View = Autodesk.Revit.DB.View;
 
-namespace AlignedDIMParam
+namespace DIMAIO
 {
-    // ═══════════════════════════════════════════════════════
-    //  TẠO RIBBON (GIAO DIỆN NÚT BẤM)
-    // ═══════════════════════════════════════════════════════
-    public class App : IExternalApplication
-    {
-        public Result OnStartup(UIControlledApplication app)
-        {
-            string tabName = "DIM";
-            try { app.CreateRibbonTab(tabName); } catch { }
-
-            RibbonPanel panel = app.GetRibbonPanels(tabName)
-                .FirstOrDefault(p => p.Name == "Dimension")
-                ?? app.CreateRibbonPanel(tabName, "Dimension");
-
-            string assemblyPath = Assembly.GetExecutingAssembly().Location;
-
-            PushButtonData btnData = new PushButtonData(
-                "AlignedDIMParam",
-                "Aligned\nDIM\nParam",
-                assemblyPath,
-                "AlignedDIMParam.Class1" // Quan trọng: trỏ đúng vào Class1
-            );
-
-            if (!panel.GetItems().OfType<PushButton>().Any(b => b.Name == "AlignedDIMParam"))
-            {
-                PushButton button = panel.AddItem(btnData) as PushButton;
-                button.ToolTip = "DIM thông minh: Chọn N đối tượng -> Live render DIM. Tự động hỏi tạo Label nếu DIM 2 điểm trong Family.";
-            }
-
-            return Result.Succeeded;
-        }
-
-        public Result OnShutdown(UIControlledApplication app) => Result.Succeeded;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  LỚP HỖ TRỢ VÀ LỌC LỰA CHỌN
-    // ═══════════════════════════════════════════════════════
-    public class DimSelectionFilter : ISelectionFilter
-    {
-        private Document _doc;
-        public DimSelectionFilter(Document doc) { _doc = doc; }
-        public bool AllowElement(Element elem) => true;
-        public bool AllowReference(Reference reference, XYZ position) => true;
-    }
-
-    // Helper tạo hộp thoại nhập Text/ComboBox bằng WinForms
-    public static class PromptHelper
-    {
-        // Đã cập nhật: Bổ sung list tham số existingParams và dùng ComboBox
-        public static string ShowDialog(string caption, string text, List<string> existingParams = null)
-        {
-            System.Windows.Forms.Form prompt = new System.Windows.Forms.Form()
-            {
-                Width = 400,
-                Height = 160,
-                FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog,
-                Text = caption,
-                StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen,
-                MaximizeBox = false,
-                MinimizeBox = false
-            };
-            System.Windows.Forms.Label textLabel = new System.Windows.Forms.Label() { Left = 20, Top = 20, Text = text, AutoSize = true };
-
-            // Dùng ComboBox thay cho TextBox
-            System.Windows.Forms.ComboBox comboBox = new System.Windows.Forms.ComboBox()
-            {
-                Left = 20,
-                Top = 45,
-                Width = 340,
-                DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDown
-            };
-
-            // Đổ data các param có sẵn vào ComboBox
-            if (existingParams != null && existingParams.Count > 0)
-            {
-                comboBox.Items.AddRange(existingParams.ToArray());
-            }
-
-            System.Windows.Forms.Button confirmation = new System.Windows.Forms.Button() { Text = "OK", Left = 260, Width = 100, Top = 80, DialogResult = System.Windows.Forms.DialogResult.OK };
-
-            prompt.Controls.Add(comboBox);
-            prompt.Controls.Add(confirmation);
-            prompt.Controls.Add(textLabel);
-            prompt.AcceptButton = confirmation;
-
-            return prompt.ShowDialog() == System.Windows.Forms.DialogResult.OK ? comboBox.Text : string.Empty;
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  LỆNH CHÍNH
-    // ═══════════════════════════════════════════════════════
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
-    public class Class1 : IExternalCommand
+    public class AlignedDIMCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -114,19 +22,17 @@ namespace AlignedDIMParam
 
             if (doc.ActiveView.ViewType == ViewType.ThreeD)
             {
-                TaskDialog.Show("Cảnh báo", "Lệnh DIM chỉ hoạt động trên mặt bằng, mặt cắt hoặc mặt đứng.");
+                Autodesk.Revit.UI.TaskDialog.Show("Cảnh báo", "Lệnh DIM chỉ hoạt động trên mặt bằng, mặt cắt hoặc mặt đứng.");
                 return Result.Failed;
             }
 
             try
             {
-                ElementId currentDimId = ElementId.InvalidElementId;
-
                 while (true)
                 {
                     List<Reference> pickedRefs = new List<Reference>();
                     Line dimLine = null;
-                    currentDimId = ElementId.InvalidElementId;
+                    ElementId currentDimId = ElementId.InvalidElementId;
                     View view = doc.ActiveView;
 
                     while (true)
@@ -136,7 +42,7 @@ namespace AlignedDIMParam
                             : $"Pick thêm tham chiếu thứ {pickedRefs.Count + 1} (ESC để hoàn tất)";
 
                         Reference r = TryPickReference(uiDoc, prompt);
-                        if (r == null) break; // User nhấn ESC
+                        if (r == null) break;
 
                         pickedRefs.Add(r);
 
@@ -200,14 +106,10 @@ namespace AlignedDIMParam
                             try
                             {
                                 bool success = isFamilyDoc
-                                    ? Case1_Family(doc, view, pickedRefs[0], out string err, out Dimension createdDim)
-                                    : Case1_Document(doc, view, pickedRefs[0], out err, out createdDim);
+                                    ? Case1_Family(doc, view, pickedRefs[0], out string err)
+                                    : Case1_Document(doc, view, pickedRefs[0], out err);
 
-                                if (success && createdDim != null)
-                                {
-                                    currentDimId = createdDim.Id;
-                                    tx.Commit();
-                                }
+                                if (success) tx.Commit();
                                 else
                                 {
                                     tx.RollBack();
@@ -222,89 +124,14 @@ namespace AlignedDIMParam
                         }
                     }
 
-                    break; // Phá vỡ vòng lặp tổng sau khi hoàn tất phiên pick
-                }
-
-                // ==========================================================
-                //  LOGIC TẠO LABEL SAU KHI TẠO DIM (ĐÃ CẬP NHẬT COMBOBOX VÀ VÒNG LẶP VALIDATE)
-                // ==========================================================
-                if (currentDimId != ElementId.InvalidElementId && isFamilyDoc)
-                {
-                    Dimension finalDim = doc.GetElement(currentDimId) as Dimension;
-
-                    if (finalDim != null && finalDim.References.Size == 2)
-                    {
-                        TaskDialogResult result = TaskDialog.Show("Tạo/Gắn Label", "Bạn có muốn tạo mới hoặc gắn Label (Parameter) có sẵn cho Dimension này không?", TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No);
-
-                        if (result == TaskDialogResult.Yes)
-                        {
-                            List<string> existingLengthParams = new List<string>();
-                            foreach (FamilyParameter fp in doc.FamilyManager.Parameters)
-                            {
-                                if (fp.Definition.GetDataType() == SpecTypeId.Length)
-                                {
-                                    existingLengthParams.Add(fp.Definition.Name);
-                                }
-                            }
-                            existingLengthParams.Sort();
-
-                            bool labelAssigned = false;
-
-                            while (!labelAssigned)
-                            {
-                                string paramName = PromptHelper.ShowDialog("Gắn Label Parameter", "Chọn Param có sẵn hoặc gõ tên mới để tạo:", existingLengthParams);
-
-                                if (string.IsNullOrWhiteSpace(paramName))
-                                {
-                                    break;
-                                }
-
-                                using (Transaction tx = new Transaction(doc, "Add Label To DIM"))
-                                {
-                                    tx.Start();
-                                    try
-                                    {
-                                        FamilyParameter targetParam = null;
-
-                                        foreach (FamilyParameter fp in doc.FamilyManager.Parameters)
-                                        {
-                                            if (fp.Definition.Name.Equals(paramName, StringComparison.OrdinalIgnoreCase))
-                                            {
-                                                targetParam = fp;
-                                                break;
-                                            }
-                                        }
-
-                                        if (targetParam == null)
-                                        {
-                                            targetParam = doc.FamilyManager.AddParameter(
-                                                paramName,
-                                                GroupTypeId.Geometry,
-                                                SpecTypeId.Length,
-                                                false
-                                            );
-                                        }
-
-                                        finalDim.FamilyLabel = targetParam;
-                                        tx.Commit();
-                                        labelAssigned = true;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        tx.RollBack();
-                                        TaskDialog.Show("Lỗi Gắn Label", $"Không thể gắn Param '{paramName}' vào DIM.\n(Có thể do sai loại dữ liệu hoặc xung đột ràng buộc).\n\nVui lòng chọn lại!\n\nChi tiết: {ex.Message}");
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    if (pickedRefs.Count == 0) break;
                 }
 
                 return Result.Succeeded;
             }
             catch (Exception mainEx)
             {
-                TaskDialog.Show("Lỗi Tổng", $"Có lỗi nghiêm trọng gây crash lệnh:\n\n{mainEx.Message}\n\n{mainEx.StackTrace}");
+                TaskDialog.Show("Lỗi Vòng Lặp Tổng", $"Có lỗi nghiêm trọng gây crash lệnh:\n\n{mainEx.Message}\n\n{mainEx.StackTrace}");
                 message = mainEx.Message;
                 return Result.Failed;
             }
@@ -412,10 +239,9 @@ namespace AlignedDIMParam
         // ═══════════════════════════════════════════════════════
         //  CASE 1: SỬA LỖI ĐIỂM MÚT TRONG FAMILY EDITOR
         // ═══════════════════════════════════════════════════════
-        private bool Case1_Family(Document doc, View view, Reference pick, out string error, out Dimension createdDim)
+        private bool Case1_Family(Document doc, View view, Reference pick, out string error)
         {
             error = null;
-            createdDim = null;
             try
             {
                 Element el = doc.GetElement(pick);
@@ -436,10 +262,10 @@ namespace AlignedDIMParam
                 if (ref1 == null || ref2 == null)
                 {
                     GeometryElement geoElem = el.get_Geometry(GetGeometryOptions(view));
-                    if (TryGetEndFaceReferences(geoElem, line, out Reference r1, out Reference r2))
+                    if (TryFindFacesByNormal(geoElem, line.Direction, out PlanarFace f1, out PlanarFace f2))
                     {
-                        ref1 = r1;
-                        ref2 = r2;
+                        ref1 = f1.Reference;
+                        ref2 = f2.Reference;
                     }
                 }
 
@@ -464,7 +290,7 @@ namespace AlignedDIMParam
 
                 Line dimLine = Line.CreateBound(placementPt, placementPt + line.Direction * 10);
 
-                createdDim = doc.FamilyCreate.NewDimension(view, dimLine, BuildRefArray(ref1, ref2));
+                doc.FamilyCreate.NewDimension(view, dimLine, BuildRefArray(ref1, ref2));
                 return true;
             }
             catch (Exception ex)
@@ -474,17 +300,16 @@ namespace AlignedDIMParam
             }
         }
 
-        private bool Case1_Document(Document doc, View view, Reference pick, out string error, out Dimension createdDim)
+        private bool Case1_Document(Document doc, View view, Reference pick, out string error)
         {
             error = null;
-            createdDim = null;
             try
             {
                 Element el = doc.GetElement(pick);
 
-                if (el is Wall wall) return DimWall(doc, view, wall, out error, out createdDim);
+                if (el is Wall wall) return DimWall(doc, view, wall, out error);
                 if (el is ReferencePlane) { error = "Không thể auto DIM cho 1 Reference Plane."; return false; }
-                if (pick.GlobalPoint != null) return DimNearestEdge(doc, view, el, pick.GlobalPoint, out error, out createdDim);
+                if (pick.GlobalPoint != null) return DimNearestEdge(doc, view, el, pick.GlobalPoint, out error);
 
                 return false;
             }
@@ -495,10 +320,9 @@ namespace AlignedDIMParam
             }
         }
 
-        private bool DimWall(Document doc, View view, Wall wall, out string error, out Dimension createdDim)
+        private bool DimWall(Document doc, View view, Wall wall, out string error)
         {
             error = null;
-            createdDim = null;
             try
             {
                 LocationCurve lc = wall.Location as LocationCurve;
@@ -516,7 +340,7 @@ namespace AlignedDIMParam
                     double dist = (placementPt - view.Origin).DotProduct(view.ViewDirection);
                     placementPt = placementPt - dist * view.ViewDirection;
 
-                    createdDim = doc.Create.NewDimension(view, Line.CreateBound(placementPt, placementPt + wallLine.Direction * 10), BuildRefArray(refLen1, refLen2));
+                    doc.Create.NewDimension(view, Line.CreateBound(placementPt, placementPt + wallLine.Direction * 10), BuildRefArray(refLen1, refLen2));
                 }
 
                 return true;
@@ -528,10 +352,9 @@ namespace AlignedDIMParam
             }
         }
 
-        private bool DimNearestEdge(Document doc, View view, Element el, XYZ pickPoint, out string error, out Dimension createdDim)
+        private bool DimNearestEdge(Document doc, View view, Element el, XYZ pickPoint, out string error)
         {
             error = null;
-            createdDim = null;
             try
             {
                 Edge bestEdge = FindClosestEdge(el.get_Geometry(GetGeometryOptions(view)), pickPoint, lineOnly: true);
@@ -552,7 +375,7 @@ namespace AlignedDIMParam
                 double dist = (placementPt - view.Origin).DotProduct(view.ViewDirection);
                 placementPt = placementPt - dist * view.ViewDirection;
 
-                createdDim = doc.Create.NewDimension(view, Line.CreateBound(placementPt, placementPt + dir * 10), BuildRefArray(ref1, ref2));
+                doc.Create.NewDimension(view, Line.CreateBound(placementPt, placementPt + dir * 10), BuildRefArray(ref1, ref2));
                 return true;
             }
             catch (Exception ex)
@@ -565,62 +388,6 @@ namespace AlignedDIMParam
         // ═══════════════════════════════════════════════════════
         //  HELPERS & GEOMETRY
         // ═══════════════════════════════════════════════════════
-        private bool TryGetEndFaceReferences(GeometryElement geoElem, Line edgeLine, out Reference ref1, out Reference ref2)
-        {
-            ref1 = null;
-            ref2 = null;
-            XYZ p1 = edgeLine.GetEndPoint(0);
-            XYZ p2 = edgeLine.GetEndPoint(1);
-            XYZ dir = edgeLine.Direction;
-
-            List<PlanarFace> allFaces = new List<PlanarFace>();
-            CollectPlanarFaces(geoElem, allFaces);
-
-            foreach (PlanarFace pf in allFaces)
-            {
-                if (Math.Abs(pf.FaceNormal.DotProduct(dir)) > 0.99)
-                {
-                    double distToP1 = Math.Abs((p1 - pf.Origin).DotProduct(pf.FaceNormal));
-                    double distToP2 = Math.Abs((p2 - pf.Origin).DotProduct(pf.FaceNormal));
-
-                    if (ref1 == null && distToP1 < 1e-5)
-                    {
-                        ref1 = pf.Reference;
-                        continue;
-                    }
-
-                    if (ref2 == null && distToP2 < 1e-5)
-                    {
-                        ref2 = pf.Reference;
-                    }
-                }
-
-                if (ref1 != null && ref2 != null) break;
-            }
-
-            return ref1 != null && ref2 != null;
-        }
-
-        private void CollectPlanarFaces(GeometryElement geoElem, List<PlanarFace> faces)
-        {
-            if (geoElem == null) return;
-
-            foreach (GeometryObject obj in geoElem)
-            {
-                if (obj is Solid solid && solid.Faces.Size > 0)
-                {
-                    foreach (Face f in solid.Faces)
-                    {
-                        if (f is PlanarFace pf && pf.Reference != null) faces.Add(pf);
-                    }
-                }
-                else if (obj is GeometryInstance gi)
-                {
-                    CollectPlanarFaces(gi.GetInstanceGeometry(), faces);
-                }
-            }
-        }
-
         private bool TryFindFacesByNormal(GeometryElement geoElem, XYZ normalDir, out PlanarFace face1, out PlanarFace face2)
         {
             face1 = face2 = null;
