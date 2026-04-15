@@ -10,7 +10,8 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Bash(dotnet build:*)",
-      "WebFetch(domain:www.revitapidocs.com)"
+      "WebFetch(domain:www.revitapidocs.com)",
+      "Bash(ls *)"
     ]
   }
 }

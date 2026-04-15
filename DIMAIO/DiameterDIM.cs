@@ -10,7 +10,7 @@ using TaskDialog = Autodesk.Revit.UI.TaskDialog;
 namespace DIMAIO
 {
     [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
-    public class RadialDIMCommand : IExternalCommand
+    public class DiameterDIMCommand : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -23,61 +23,91 @@ namespace DIMAIO
                 Reference pickedRef = uiDoc.Selection.PickObject(ObjectType.Element, "Chọn cung tròn");
                 Element el = doc.GetElement(pickedRef);
 
-                sb.AppendLine($"ElementType: {el.GetType().Name}, Id: {el.Id}");
+                sb.AppendLine($"Element: {el.GetType().Name}, Id: {el.Id}");
 
                 Arc arcCurve = null;
 
-                // DetailArc / CurveElement
+                // DetailArc
                 if (el is CurveElement ce)
                 {
                     arcCurve = ce.GeometryCurve as Arc;
-                    sb.AppendLine("CurveElement - Arc: " + (arcCurve != null));
                 }
                 // Wall
                 else if (el is Wall wall)
                 {
                     LocationCurve lc = wall.Location as LocationCurve;
                     arcCurve = lc?.Curve as Arc;
-                    sb.AppendLine("Wall - Arc: " + (arcCurve != null));
                 }
 
                 if (arcCurve == null)
                 {
-                    TaskDialog.Show("Debug", sb.ToString());
+                    TaskDialog.Show("Debug", "Khong co Arc.");
                     message = "Khong co Arc geometry.";
                     return Result.Failed;
                 }
 
-                sb.AppendLine($"Arc: C=({arcCurve.Center.X:F4},{arcCurve.Center.Y:F4},{arcCurve.Center.Z:F4}), R={arcCurve.Radius:F4}");
+                XYZ center = arcCurve.Center;
+                XYZ startPt = arcCurve.GetEndPoint(0);
+                XYZ dir = (startPt - center).Normalize();
+                XYZ dimEnd = center + dir * (arcCurve.Radius * 1.5);
+                Line dimLine = Line.CreateBound(center, dimEnd);
 
-                // Lay arc edge reference tu geometry
-                Reference dimRef = FindArcEdgeRef(el, arcCurve, doc.ActiveView, sb);
+                Reference arcRef = null;
 
-                if (dimRef == null)
+                // DetailArc -> dung Reference(el)
+                if (el is CurveElement)
+                {
+                    arcRef = new Reference(el);
+                }
+                // Wall -> thu cach khac nhau
+                else if (el is Wall wall)
+                {
+                    sb.AppendLine("Wall: thu cac cach lay reference...");
+
+                    // Cach 1: Edge reference (nhu Radial)
+                    arcRef = FindArcEdgeRef(wall, arcCurve, doc.ActiveView, sb);
+
+                    // Cach 2: HostObjectUtils face reference
+                    if (arcRef == null)
+                    {
+                        sb.AppendLine("  Cach 2: GetSideFaces...");
+                        var faces = HostObjectUtils.GetSideFaces(wall, ShellLayerType.Exterior);
+                        if (faces != null && faces.Count > 0)
+                        {
+                            sb.AppendLine($"  GetSideFaces: {faces.Count} faces");
+                            arcRef = faces[0];
+                            sb.AppendLine($"  -> Using face ref: {arcRef.ElementId}");
+                        }
+                    }
+                }
+
+                if (arcRef == null)
                 {
                     TaskDialog.Show("Debug", sb.ToString());
-                    message = "Khong lay duoc arc reference.";
+                    message = "Khong lay duoc reference.";
                     return Result.Failed;
                 }
 
-                sb.AppendLine($"dimRef.ElementId: {dimRef.ElementId}");
+                sb.AppendLine($"arcRef: {arcRef.ElementId}");
 
-                using (Transaction tx = new Transaction(doc, "Radial DIM"))
+                using (Transaction tx = new Transaction(doc, "Diameter DIM"))
                 {
                     tx.Start();
 
+                    ReferenceArray refArray = new ReferenceArray();
+                    refArray.Append(arcRef);
+                    sb.AppendLine($"refArray.Size: {refArray.Size}");
+
                     try
                     {
-                        // Dung RadialDimension.Create
-                        Dimension radDim = RadialDimension.Create(doc, doc.ActiveView, dimRef, false);
-                        if (radDim != null)
+                        Dimension dim = doc.Create.NewDimension(doc.ActiveView, dimLine, refArray);
+                        if (dim != null)
                         {
-                            // Gan Radial Type
                             DimensionType dt = new FilteredElementCollector(doc)
                                 .OfClass(typeof(DimensionType))
                                 .Cast<DimensionType>()
-                                .FirstOrDefault(x => x.StyleType == DimensionStyleType.Radial);
-                            if (dt != null) radDim.DimensionType = dt;
+                                .FirstOrDefault(x => x.StyleType == DimensionStyleType.Diameter);
+                            if (dt != null) dim.DimensionType = dt;
 
                             tx.Commit();
                             TaskDialog.Show("OK", sb.ToString());
@@ -86,12 +116,12 @@ namespace DIMAIO
                     }
                     catch (Exception ex)
                     {
-                        sb.AppendLine($"RadialDimension.Create FAILED: {ex.Message}");
+                        sb.AppendLine($"FAILED: {ex.Message}");
                         TaskDialog.Show("Debug", sb.ToString());
                     }
 
                     tx.RollBack();
-                    message = "Tao Radial Dimension that bai.";
+                    message = "Tao Diameter that bai.";
                     return Result.Failed;
                 }
             }
@@ -108,27 +138,25 @@ namespace DIMAIO
             }
         }
 
-        private Reference FindArcEdgeRef(Element el, Arc arcCurve, View view, StringBuilder sb)
+        private Reference FindArcEdgeRef(Element wall, Arc arcCurve, View view, StringBuilder sb)
         {
             double targetRadius = arcCurve.Radius;
             Reference bestRef = null;
-            double bestRadiusDiff = double.MaxValue;
+            double bestDiff = double.MaxValue;
 
             Options opt = new Options { ComputeReferences = true, View = view, IncludeNonVisibleObjects = true };
-            GeometryElement geo = el.get_Geometry(opt);
+            GeometryElement geo = wall.get_Geometry(opt);
             if (geo == null) return null;
 
-            int count = 0;
             foreach (GeometryObject obj in geo)
             {
-                count = FindArcs(obj, targetRadius, ref bestRef, ref bestRadiusDiff, sb, count);
+                bestDiff = FindArcs(obj, targetRadius, ref bestRef, bestDiff);
             }
-            sb.AppendLine($"Total arc edges: {count}, Best ref: {(bestRef != null ? $"{bestRef.ElementId}" : "null")}");
+            sb.AppendLine($"  EdgeRef: {(bestRef != null ? $"{bestRef.ElementId}" : "null")}, diff={bestDiff:F4}");
             return bestRef;
         }
 
-        private int FindArcs(GeometryObject obj, double targetRadius,
-            ref Reference bestRef, ref double bestRadiusDiff, StringBuilder sb, int count)
+        private double FindArcs(GeometryObject obj, double targetRadius, ref Reference bestRef, double bestDiff)
         {
             if (obj is Solid solid)
             {
@@ -136,15 +164,11 @@ namespace DIMAIO
                 {
                     if (edge.AsCurve() is Arc edgeArc)
                     {
-                        count++;
                         double rDiff = Math.Abs(edgeArc.Radius - targetRadius);
-                        sb.AppendLine($"  Edge{count}: R={edgeArc.Radius:F4}, rDiff={rDiff:F4}, C=({edgeArc.Center.X:F2},{edgeArc.Center.Y:F2},{edgeArc.Center.Z:F2})");
-
-                        if (rDiff < bestRadiusDiff)
+                        if (rDiff < bestDiff)
                         {
-                            bestRadiusDiff = rDiff;
+                            bestDiff = rDiff;
                             bestRef = edge.Reference;
-                            sb.AppendLine($"    -> BEST (rDiff={rDiff:F4})");
                         }
                     }
                 }
@@ -152,9 +176,9 @@ namespace DIMAIO
             else if (obj is GeometryInstance inst)
             {
                 foreach (GeometryObject iobj in inst.GetInstanceGeometry())
-                    count = FindArcs(iobj, targetRadius, ref bestRef, ref bestRadiusDiff, sb, count);
+                    bestDiff = FindArcs(iobj, targetRadius, ref bestRef, bestDiff);
             }
-            return count;
+            return bestDiff;
         }
     }
 }

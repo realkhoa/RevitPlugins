@@ -98,6 +98,19 @@ namespace DIMAIO
                 button.ToolTip = "Places a dimension that measures the radius of an arc or circle.";
             }
 
+            // Diameter DIM
+            PushButtonData DiameterDimBtnData = new PushButtonData(
+                "Diameter DIM",
+                "Diameter\nDIM",
+                assemblyPath,
+                "DIMAIO.DiameterDIMCommand"
+            );
+            if (!panel.GetItems().OfType<PushButton>().Any(b => b.Name == "Diameter DIM"))
+            {
+                PushButton button = panel.AddItem(DiameterDimBtnData) as PushButton;
+                button.ToolTip = "Places a dimension that measures the diameter of a circle or arc.";
+            }
+
             return Result.Succeeded;
         }
     }
