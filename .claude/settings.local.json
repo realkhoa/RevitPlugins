@@ -6,7 +6,10 @@
       "Bash(dotnet-script -e \"using System; using System.Reflection; var asm = Assembly.LoadFrom\\(@'C:\\\\Program Files\\\\Autodesk\\\\Revit 2026\\\\RevitAPI.dll'\\); var t = asm.GetType\\('Autodesk.Revit.DB.GroupTypeId'\\); if\\(t != null\\) foreach\\(var f in t.GetFields\\(BindingFlags.Public|BindingFlags.Static\\) \\) Console.WriteLine\\(f.Name\\); else Console.WriteLine\\('null'\\);\")",
       "Bash(cat)",
       "Read(//c/Users/khoan/AppData/Local/Temp/revinspect/**)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(dotnet build:*)"
     ]
   }
 }
